@@ -1,0 +1,35 @@
+{
+    "title": "hello",
+    "message": "Hi {name}, thank you for being a loyal customer! Stay tuned for exclusive deals and surprises coming your way.",
+    "status": "3",
+    "alphanumericId": "1",
+    "mode": "0",
+    "recurrence": "2",
+    "weekly": [
+        "mon",
+        "tue"
+    ],
+    "time": "12:22",
+    "contactGroupId": "72"
+}
+
+
+{
+    "title": "Hello 202501200949",
+    "message": "Hello {name}\nwelcome back",
+    "status": 1,
+    "scheduled": "2025-03-19 08:45",
+    "mode": 1,
+    "contacts": [
+        {
+            "phone": "254776866414",
+            "fname": "Alice",
+            "lname": "Jones"
+        },
+        {
+            "phone": "254748797565",
+            "fname": "Liam",
+            "lname": "Jones"
+        }
+    ]
+}

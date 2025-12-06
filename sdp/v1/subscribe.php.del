@@ -1,0 +1,92 @@
+<?php
+
+$request = '{
+    "requestId":"17223344555",
+    "requestTimeStamp":"20190916145324",
+    "operation":"CP_NOTIFICATION",
+    "requestParam":
+        {
+            "data": [
+                {
+                    "name":"Msisdn",
+                    "value":"716848648"
+                },
+                {
+                    "name":"OfferCode",
+                    "value":"1001"
+                },
+                {
+                    "name":"Command",
+                    "value":"XXX" 
+                }
+            ],
+            "additionalData":
+                [
+                    { 
+                         "name":"", 
+                         "value":"" 
+                     }
+                ]
+}';
+
+
+// prevent from being access via 
+if(php_sapi_name() != 'cli') die('Access denied.');
+
+require __dir__.'/../../.config/.config.php'; 
+require __dir__.'/../../.core/.funcs.php'; 
+require __dir__.'/../../.core/.redis.php';
+
+$token = json_decode(redisGetValue(SDP_TOKEN),1);
+$tokenII = json_decode(redisGetValue(SDP_REFRESH_TOKEN),1);
+
+$headers = [
+    'Content-Type: application/json',
+    'X-Requested-With: XMLHttpRequest',
+    'X-Authorization: Bearer '.$token
+];
+
+// $request = [
+//     "requestId" =>  'Tp'.time(),
+//     "channel"   =>  "SMS",
+//     "operation" =>  "SendSMS",
+//     "requestParam"  =>  [
+//         "data"  =>  [
+//             ["name" =>  "LinkId", "Value" =>  ""],
+//             ["name" =>  "Msisdn", "Value" =>  "254715003414"],
+//             ["name" =>  "Content", "Value" =>  "Thank You for Ondemand Subscription SAFRI TEST TUN Subscption test Send sms"],
+//             ["name" =>  "OfferCode", "Value" =>  6782],
+//             ["name" =>  "CpId", "Value" =>  SDP_ID],
+//         ]
+//     ]
+// ];
+
+$request = [
+    "requestId" => 'Tp'.time(),
+    "channel" => "SMS",
+    "operation" => "ACTIVATE",
+    "requestParam" => [
+        "data" => [
+            [
+                "name" => "OfferCode",
+                "value" => 001075102371
+            ],
+            [
+                "name" => "Msisdn",
+                "value" => "715003414"
+            ],
+            [
+                "name" => "Language",
+                "value" => "1"
+            ],
+            [
+                "name" => "CpId",
+                "value" => SDP_ID
+            ]
+        ]
+    ]
+];
+
+$return = callAPI("POST", SDP1.'api/public/SDP/activate', $headers, $request);
+
+print_r($return);

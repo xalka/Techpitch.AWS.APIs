@@ -1,0 +1,57 @@
+<?php
+
+// DEACTIVATION: This will be sent when subscriber unsubscribe from an offer.
+
+// {
+//     "requestId":"12",
+//     "requestTimeStamp":"20200110091747",
+//     "requestParam":{
+//         "data":[
+//             {
+//                 "name":"OfferCode",
+//                 "value":"001006300035"
+//             },
+//             { 
+//                 "name":"TransactionId",
+//                 "value":"10188826109958294032"
+//             },
+//             {
+//                 "name":"ClientTransactionId",
+//                 "value":"12"
+//             },
+//             {
+//                 "name":"Language",
+//                 "value":"1"
+//             },
+//             {
+//                 "name":"SubscriberLifeCycle",
+//                 "value":"Unsubscription"
+//             },
+//             {
+//                 "name":"SubscriptionStatus",
+//                 "value":"D"
+//             },
+//             {
+//                 "name":"Channel",
+//                 "value":"10"
+//             },
+//             {
+//                 "name":"Reason",
+//                 "value":"USER_INIT_REQUEST"
+//             },
+//             {
+//                 "name":"Type",
+//                 "value":"DEACTIVATION"
+//             },
+//             {
+//                 "name":"OfferName",
+//                 "value":"9200_Inspiration_ksh1_perday"
+//             },
+//             {
+//                 "name":"Msisdn",
+//                 "value":"254728171730"
+//             }
+//         ]
+//     },
+//     "operation":"CP_NOTIFICATION"
+// }

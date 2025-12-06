@@ -1,0 +1,75 @@
+<?php
+
+if($_SERVER['REQUEST_METHOD']!='POST') exit('Bad Request');
+// if(!in_array($_SERVER['HTTP_ORIGIN'],['http://127.0.0.1:1800','http://techxal.co.ke','http://www.techxal.co.ke','https://techxal.co.ke','https://www.techxal.co.ke'])) exit('Bad Request');
+
+$req = json_decode(file_get_contents('php://input'),1); print_r($req); exit;
+
+// $req['subject'] = addslashes($req['subject']);
+// $req['name'] = addslashes($req['name']);
+
+// if(!filter_var($req['email'],FILTER_VALIDATE_EMAIL)) {
+//     exit('Invalid email');
+// }
+
+// if(isset($req['phone']) && !preg_match("/^[0-9]{10}+$/",$req['phone']) && !preg_match("/^\+?[1-9][0-9]{7,14}$/",$req['phone'])) {
+// 	exit('Invalid phone');
+// }
+
+// define('DOMAIN', 'https://api.techxal.co.ke/');
+define('DOMAIN', 'https://www.techxal.com/');
+define('TOKEN', '8A1600472247626371600472247073DF22C954721EAE1816B8F579EE3DA1600472247187014');
+
+/*
+$data = [
+	// 'username' => 'techxal',
+	// 'from' => 'Techxal',
+	'subject' => $req['subject'],
+	'content' => $req['message'],
+	'sender' => [
+		'name' => ucwords($req['name']),
+		'email' => strtolower($req['email']),
+	]
+	// 'recipients' => array(
+	// 	array(
+	// 		'email' => 'info@techxal.com',
+	// 		'name' => 'Techxal Info'			
+	// 	),
+	// 	array(
+	// 		'email' => 'joshua@techxal.com',
+	// 		'name' => 'Joshua Musyoka'			
+	// 	),
+	// 	array(
+	// 		'email' => 'tech.xalka@gmail.com',
+	// 		'name' => 'Joshua Musyoka'			
+	// 	)
+	// )
+];
+*/
+// print_r(json_encode($data)); exit;
+// https://techxal.com/sendemail.php
+// $ch = curl_init(DOMAIN.'email/v1/send');
+
+$ch = curl_init(DOMAIN.'sendemail.php');
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+curl_setopt($ch, CURLOPT_POSTFIELDS,json_encode($req));
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+	    'Content-Type: application/json',
+		'Username: techxal',
+		'Urgency: very-high',
+		'Authtoken: '.TOKEN
+	)
+);
+$results = curl_exec($ch);
+curl_close ($ch);
+
+header('Content-Type: application/json');
+$results = json_decode($results,1);
+if(isset($results['messageId'])) $info = ['sent' => 1];
+else $info = ['sent' => 1];
+
+header("Content-type: application/json; charset=utf-8");
+print_r(json_encode($info));
+
+?>

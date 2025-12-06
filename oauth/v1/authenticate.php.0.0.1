@@ -1,0 +1,128 @@
+<?php
+
+require __dir__.'/.config.php';
+require __dir__.'/../../.proc/.db.php';
+
+
+// start authorize token
+$headers = getallheaders();
+
+if(isset($headers['Phone'])){
+	$info = json_decode(redisGetValue($headers['Phone']),1);
+	if($info['token'] == $headers['Authtoken']){
+	    http_response_code(200);
+	    header('Content-Type: application/json');
+	    $value = array(
+	    	'auth' => true
+	    );
+	    print_r(json_encode($value));
+	    exit;		
+	} else {
+	    header("HTTP/1.0 403 Forbidden");
+	    http_response_code(403);
+	    header('Content-Type: application/json');
+	    $value = array(
+	    	'auth' => false
+	    );
+	    print_r(json_encode($value));
+	    exit;		
+	}
+
+	// if(!redisKeyExists($headers['Phone'])){
+	//     header("HTTP/1.0 403 Forbidden");
+	//     http_response_code(403);
+	//     header('Content-Type: application/json');
+	//     $value = array(
+	//     	'auth' => 0
+	//     );
+	//     print_r(json_encode($value));
+	//     exit;
+		
+	// }	
+}
+
+
+if(isset($headers['Phone'])){
+	$info = json_decode(redisGetValue($headers['Phone']),1);
+	if($info['token'] == $headers['Authtoken']) return true;
+	else return false;
+}
+
+
+print_r($headers); 
+exit;
+
+if(!redisKeyExists($headers['Authtoken'])){
+    header("HTTP/1.0 403 Forbidden");
+    http_response_code(403);
+    header('Content-Type: application/json');
+    $value = array(
+    	'auth' => 0
+    );
+    print_r(json_encode($value));
+    exit;
+	
+}
+
+http_response_code(200);
+header('Content-Type: application/json');
+
+$value = array(
+	'auth' => 0
+);
+
+print_r(json_encode($value));
+
+exit;
+
+// check if the key exists in redis
+
+// check if the key has expired
+
+// authenticated
+
+// expired
+
+// return 
+	// username, valid
+	$resp = array(
+		'authorized' => 1,
+		'username' => $headers['Username']
+	);
+
+	print_r(json_encode($resp));
+
+
+exit;
+
+$path = OAUTH_PATH." ".$headers['Username']." '".$headers['Authtoken']."'"; // print_r($path); exit;
+$oauth = json_decode(shell_exec($path),1); // print_r($oauth); exit;
+if(!empty($oauth) && !$oauth['status']){
+    print_r(json_encode($oauth));
+    exit;
+}
+
+$dbData = array(
+	'action' => 8,
+	'username' => $argv[1],
+	'pcode' => $argv[2]
+);
+
+require_once __DIR__.'/db-mysql.php';
+// require_once __DIR__.'/proc.php';
+require_once BASE_DIR.'/.proc/.proc.php';
+
+// $return = proc(User($dbData));
+$return = proc(User($dbData)); // print_r($return); exit;
+
+if(empty($return) || $return[0]['mins'] > DURATION){
+	$resp = array(
+		"status" => 0,
+		'error' => "Invalid Access Token"
+	);
+} else {
+	$resp = array(
+		"status" => 1
+	);	
+}
+print_r(json_encode($resp));

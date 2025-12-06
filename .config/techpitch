@@ -1,0 +1,103 @@
+server {
+        listen          2500;
+        server_name     techpitch.test;
+        add_header      X-Frame-Options "SAMEORIGIN";
+        root            /srv/web-data/techpitch/techpitch.web;
+        index           index.php index.html index.htm;
+
+        location ~ \.php$ {
+                include snippets/fastcgi-php.conf;
+                fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+        }
+
+        location / {
+		# auth_request /auth;
+                try_files $uri $uri.html $uri/ @extensionless-php;
+        }
+
+        location @extensionless-php {
+                rewrite ^(.*)$ $1.php last;
+        }
+
+#	location /auth {
+#		internal;
+#		proxy_pass		http://techpitch.test:2500/oauth/v1/authenticate;
+#		proxy_set_header	Host $host;
+#		proxy_set_header	X-Real-IP $remote_addr;
+#		proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+#		proxy_set_header	X-Forwarded-Proto $scheme;
+#		proxy_set_header	Authorization $http_authorization;  # Forward the token
+#	}
+
+        location /logs {
+                deny    all;
+                return  404;
+        }
+
+#        access_log      /srv/web/techxal/logs/access.log;
+#        error_log       /srv/web/techxal/logs/error.log;
+
+        location ~ /\.ht {
+                deny all;
+        }
+
+}
+
+server {
+        listen          2501;
+        server_name     techpitch.test;
+        add_header      X-Frame-Options "SAMEORIGIN"; 
+	root		/srv/web-data/techpitch/techpitch.system;
+        index           index.php index.html index.htm;
+        location ~ \.php$ {
+                include snippets/fastcgi-php.conf;
+                fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        }
+        location / {
+#                try_files $uri $uri.html $uri/ @extensionless-php;
+#		index index.html index.htm index.php;
+		try_files $uri $uri/ /index.php;
+#               deny 127.0.0.1;
+#               deny all;
+        }
+#        location @extensionless-php {
+#                rewrite ^(.*)$ $1.php last;
+#        }
+        location /logs {
+                deny    all;
+                return  404;
+        }
+#        access_log      /srv/web/techxal.sys.web/logs/access.log;
+#        error_log       /srv/web/techxal.sys.web/logs/error.log;
+        location ~ /\.ht {
+                deny all;
+        }
+
+}
+
+server {
+	listen		2503;
+        server_name	techpitch.test;
+        add_header	X-Frame-Options "SAMEORIGIN";
+        root		/srv/web-data/techpitch/techpitch.smpp;
+        index		index.php index.html index.htm;
+        location ~ \.php$ {
+                include snippets/fastcgi-php.conf;
+		fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        }
+        location / {
+		try_files $uri $uri/ /index.php;
+#                allow 127.0.0.1;
+#                deny all;
+        }
+	location /logs {
+		deny	all;
+		return	404;
+	}
+#        access_log	/srv/web/posxal.restaurant/logs/access.log;
+#        error_log	/srv/web/posxal.restaurant/logs/error.log;
+        location ~ /\.ht {
+                deny all;
+        }
+
+}

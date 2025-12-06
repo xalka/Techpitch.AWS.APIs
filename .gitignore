@@ -1,0 +1,6 @@
+# Ignore all .log files
+
+.config/.config.php
+sdp/logs
+.qodo
+.logs

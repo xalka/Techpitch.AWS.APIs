@@ -1,0 +1,5 @@
+
+{"Body":{"stkCallback":{"MerchantRequestID":"dab3-4cb9-9110-99918efd35e3130149573","CheckoutRequestID":"ws_CO_04112024213657659715003414","ResultCode":0,"ResultDesc":"The service request is processed successfully.","CallbackMetadata":{"Item":[{"Name":"Amount","Value":1},{"Name":"MpesaReceiptNumber","Value":"SK42LXVWT6"},{"Name":"Balance"},{"Name":"TransactionDate","Value":20241104213707},{"Name":"PhoneNumber","Value":254715003414}]}}}}
+
+
+{"TransactionType":"Pay Bill","TransID":"SK42LXVWT6","TransTime":"20241104213707","TransAmount":"1.00","BusinessShortCode":"594831","BillRefNumber":"28","InvoiceNumber":"","OrgAccountBalance":"184.00","ThirdPartyTransID":"","MSISDN":"254715003414","FirstName":"JOSHUA","MiddleName":"M","LastName":"MUSEMBI"}
