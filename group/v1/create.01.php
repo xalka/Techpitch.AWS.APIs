@@ -6,32 +6,29 @@ require __dir__.'/../../.core/.mongodb.php';
 require __dir__.'/../../.core/.procedures.php';
 require __dir__.'/../../.core/.mysql.php'; 
 
-if(!ReqPut()) ReqBad();
+if(!ReqPost()) ReqBad();
 
 $headers = getallheaders();
 
 $req = json_decode(file_get_contents('php://input'),1);
-// print_r($req); exit;
+
 foreach ($req['contacts'] as $key => $contact) {
     $req['contacts'][$key]['phone'] = validPhone($contact['phone']);
 }
 
 $dbdata = [
-    'action' => 3,
+    'action' => 1,
     'customerId' => $headers['Customerid'],
     'pgroupId' => $headers['Groupid'],
-    'title' => validString($req['title']),
-    'groupId' => validInt($req['id']),
+    'title' => $req['title'],
     // 'message' => $req['message']
 ];
 
-// print_j($req['contacts']);
-
 try {
     // 4. Save into mysql
-    $return = PROC(ContactGroup($dbdata)); print_j($return); exit; // [0][0]; // Done
+    $return = PROC(ContactGroup($dbdata))[0][0]; // Done
 
-    if(isset($return['updated']) && $return['updated'] != -1){
+    if(isset($return['created']) && $return['created'] > 0){
 
         $groupId = $return['groupId'];
 

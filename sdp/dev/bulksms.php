@@ -1,5 +1,5 @@
 <?php
-
+echo "Starting ...";
 // prevent from being access via 
 if(php_sapi_name() != 'cli') die('Access denied.');
 
@@ -48,3 +48,6 @@ print_j($return); exit;
 //     "status": "SUCCESS",
 //     "statusCode": "SC0000"
 // }
+
+
+echo "\n\nEnd.";

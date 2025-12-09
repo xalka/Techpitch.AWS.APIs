@@ -2,19 +2,22 @@
 
 function ContactGroup($data=null){
 	$action = $data['action'];
-	$customerId = isset($data['customerId']) && !empty($data['customerId']) ? $data['customerId'] : 'null';
-	$title = isset($data['title'])  && !empty($data['title']) ? $data['title'] : 'null';
+	$id = isset($data['id']) && !empty($data['id']) ? $data['id'] : 'null';
 	$groupId = isset($data['groupId'])  && !empty($data['groupId']) ? $data['groupId'] : 'null';
 	$pgroupId = isset($data['pgroupId'])  && !empty($data['pgroupId']) ? $data['pgroupId'] : 'null';
-	$typeId = isset($data['typeId'])  && !empty($data['typeId']) ? $data['typeId'] : 'null';
-	$descrp = isset($data['descrp'])  && !empty($data['descrp']) ? $data['descrp'] : 'null';
-	$phones = isset($data['phones'])  && !empty($data['phones']) ? $data['phones'] : 'null';
+	$customerId = isset($data['customerId'])  && !empty($data['customerId']) ? $data['customerId'] : 'null';
+	$title = isset($data['title'])  && !empty($data['title']) ? $data['title'] : '0';
+	$phone = isset($data['phone'])  && !empty($data['phone']) ? $data['phone'] : 'null';
+	$fname = isset($data['fname'])  && !empty($data['fname']) ? $data['fname'] : '0';
+	$lname = isset($data['lname'])  && !empty($data['lname']) ? $data['lname'] : '0';
+	$descrp = isset($data['descrp'])  && !empty($data['descrp']) ? $data['descrp'] : '0';
+	$active = isset($data['active'])  && !empty($data['active']) ? $data['active'] : 'null';
 	$starttime = isset($data['starttime'])  && !empty($data['starttime']) ? $data['starttime'] : date(NOW,strtotime('Y-m-d'));
 	$endtime = isset($data['endtime'])  && !empty($data['endtime']) ? $data['endtime'] : date(NOW,strtotime('Y-m-d'));
 	$start = isset($data['start'])  && !empty($data['start']) ? $data['start'] : START;
 	$limit = isset($data['limit'])  && !empty($data['limit']) ? $data['limit'] : LIMIT;
 
-	return "CONTACTGROUP($action,$customerId,'$title',$groupId,$pgroupId,$typeId,'$descrp','$phones','$starttime','$endtime',$start,$limit)";
+	return "CONTACTGROUP($action,$id,$groupId,$pgroupId,$customerId,'$title',$phone,'$fname','$lname','$descrp',$active,'$starttime','$endtime',$start,$limit)";
 }
 
 function Message($data=null){

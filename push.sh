@@ -93,8 +93,8 @@ git_push() {
     title=${title:-"System backup at $(date +"%Y-%m-%d %H:%M")"}
 
     # Get branch name
-    read -p "To which branch? [development] " branch
-    branch=${branch:-"development"}
+    read -p "To which branch? [dev] " branch
+    branch=${branch:-"dev"}
 
     # Perform git operations
     git add -A
