@@ -273,7 +273,10 @@ function SaveMessage($payload){
             if(is_numeric($value)) $dbdata[$key] = validInt($value);
         }
         if(mongoInsert(CMESSAGE,$dbdata)){
-            $response = [ '_id' => $dbdata['_id'] ];
+            $response = [ 
+                '_id' => $dbdata['_id'],
+                'created' => 1
+            ];
         } else {
             $response = [
                 'created' => 0,

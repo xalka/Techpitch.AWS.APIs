@@ -34,7 +34,7 @@ if($balance['balance'] >= $units && isset($balance['transactionId'])){
         'title' => $req['title'],
         'message' => $req['message'],
         'contactGroupId' => $req['contactGroupId'] ?? null,
-        'contacts' => $req['contacts'] ?? [],
+        // 'contacts' => $req['contacts'] ?? [],
         'recipients' => $req['recipients'],
         'alphanumeric' => $req['alphanumeric'],
         'alphanumericId' => $req['alphanumericId'],
@@ -48,27 +48,55 @@ if($balance['balance'] >= $units && isset($balance['transactionId'])){
         'typeId' => $req['typeId'],
         'mode' => $req['mode']
     ];
+
+    // writeToFile(LOG_FILE,$request);    
     
-    writeToFile(LOG_FILE,$request);
+    // save into DB
+    $return = SaveMessage($request);
+    if(isset($return['_id']) && $return['_id']>0){
+        $request['messageId'] = validInt($return['_id']);
+    } else {
+        $response = [
+            'status' => 400,
+            'error' => 'Failed to save message'
+        ];
+        print_j($response);
+        exit;
+    }
 
     try {
-        $kafkaClient = new KafkaClient(KAFKA_BROKER);
-        $kafkaClient->produceMessage(KAFKA_SEND_BULK_TOPIC, json_encode($request),$partition=RD_KAFKA_PARTITION_UA);
+       
+        $kafka = new KafkaHelper(KAFKA_BROKER);
+
+        if(isset($req['contacts']) && !empty($req['contacts'])){
+            // $chunkSize = 100;
+            foreach (array_chunk($req['contacts'],GROUP_CHUNKS) as $batch) { 
+                $request['contacts'] = $batch;
+                // $messages = [];
+                // $messages = $request;
+                // foreach ($batch as $recipient) {
+                //     $messages['contacts'] = json_encode([
+                //         'recipient'     => $recipient,
+                //         'message'       => $req['message'],
+                //         'transactionId' => $balance['transactionId']
+                //     ]);
+                // }
+
+                $kafka->produceMessage(KAFKA_SEND_BULK_TOPIC,json_encode($request));
+            }
+
+        } else {
+            // $kafkaClient->produceMessages(KAFKA_SEND_BULK_TOPIC, $request, RD_KAFKA_PARTITION_UA);
+            $kafka->produceMessage(KAFKA_SEND_BULK_TOPIC,json_encode($request));
+        }
+
+        // Flush pending messages
+        $kafka->flush();
 
         $response = [
             'status' => 200
         ]; 
-        
-        // Produce multiple messages
-        /*$messages = [];
-        for ($i = 0; $i < 10; $i++) {
-            $messages[] = "Message " . $i . ' ' . time();
-        }
-        $kafkaClient->produceMessages($topicName, $messages);
-        */
-        
-        // Flush pending messages
-        $kafkaClient->flush();
+
 
     } catch (Exception $e) {
         echo "Error: " . $e->getMessage() . "\n";

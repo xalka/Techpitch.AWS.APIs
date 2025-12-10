@@ -3,147 +3,143 @@
 // prevent from being access via 
 if(php_sapi_name() != 'cli') die('Access denied.');
 
-require __dir__.'/../../.config/.config.php'; 
-require __dir__.'/../../.core/.funcs.php'; 
-require __dir__.'/../../.core/.mysql.php'; 
-require __dir__.'/../../.core/.procedures.php';
-require __dir__.'/../../.core/.mongodb.php';
-require __dir__.'/../../.core/.redis.php';
+$baseDir = dirname(__dir__,2);
 
-require_once __dir__.'/../../.core/Kafka/KafkaClient.php';
+require_once $baseDir.'/.config/.config.php'; 
 
-$kafka = new KafkaClient(KAFKA_BROKER);
+$files = ['.funcs.php','.mysql.php','.mongodb.php','.procedures.php','RedisHelper.php','KafkaHelper.php','SDP.php'];
 
-$callback = function ($message) {
-    echo "Received message: " . $message->payload . "\n";
-    
-    $payload = json_decode($message->payload,1);
+foreach ($files as $file) require_once $baseDir.'/.core/'.$file;
 
-    $headers = $payload['headers'];
+try {
 
-    if($payload['statusId'] == 4){
-        // save into DB
-        $return = SaveMessage($payload);
-        if(isset($return['_id']) && $return['_id']>0){
-            $payload['messageId'] = validInt($return['_id']);
-        } else {
-            // Exit
-            echo "Error: $return[0]\n\n";
-            exit;
-        }
-    }      
+    echo "Connecting to Kafka...\n";
+    $kafka = new KafkaHelper(KAFKA_BROKER);
 
-    // Contacts from GroupId 
-    if(!isset($payload['contacts']) || empty($payload['contacts']) || count($payload['contacts'])==0){
+    echo "Subscribing to topic sendbulksms...\n";
+    $kafka->createConsumer("sms-worker-group", [KAFKA_SEND_BULK_TOPIC]);
+
+    echo "Listening...\n";
+
+    $kafka->consume(function($payload) {
+        $payload = json_decode($payload,1);
+
+        $redis = new RedisHelper();
+        $token = $redis->get(SDP_TOKEN);
+
+        $message = [
+            'token' => $token,
+            'username' => SDP_USERNAME2,
+            "password" => SDP_PASSWORD2,
+            'shortcode' => $payload['alphanumeric'],
+            'timestamp' => SDP_TIMESTAMP,
+            'messageId' => $payload['messageId'],
+            'message' => $payload['message'],
+        ];
         
-        $url = API_HOST."group/v1/detail";
-        $loop = true;
-        $start = 0;
-        $limit = 10;
+        // 1. Send from contact group
+        if(isset($payload['contactGroupId']) && $payload['contactGroupId'] > 0 ){
 
-        while($loop){
-            $request = [
-                'id' => $payload['contactGroupId'],
-                'start' => $start,
-                'limit' => $limit
-            ];
-            $contacts = json_decode(callAPI('GET',$url,$headers,$request),1); // print_r($contacts); exit;
+            $url = API_HOST."group/v1/detail";
+            $loop = true;
+            $start = 0;
+            $limit = MESSAGE_CHUNKS;
 
-            $payload['contacts'] = $contacts[0]['contacts'];
+            while($loop){
+                $request = [
+                    'id' => $payload['contactGroupId'],
+                    'start' => $start,
+                    'limit' => $limit
+                ];
+                $contacts = json_decode(callAPI('GET',$url,$headers,$request),1); 
 
-            // implode(',',array_column($payload['contacts'],'phone'))
+                // $payload['contacts'] = $contacts[0]['contacts'];
 
-            $response = saveMessageRecipients($payload);
-            if($response['status']==500){
-                echo "Technical problem";
-            }          
+                // implode(',',array_column($payload['contacts'],'phone'))
 
-            // send to sdp
-            // check if its normal or custom
-            if($payload['mode']==1){
+                $response = saveMessageRecipients($payload);
+                if($response['status']==500){
+                    echo "Technical problem";
+                }          
+
+                // send to sdp
+                // check if its normal or custom
+                if($payload['mode']==1){
+                    $chunks = array_chunk($payload['contacts'],MESSAGE_CHUNKS);
+                    
+                    foreach ($chunks as $chunk){
+                        foreach ($chunk as $contact){
+                            // advance: {variables} to be parameter or read from excel column
+                            $message = $payload;
+                            // $message['contacts'] = [$contact];
+                            $message['message'] = str_replace("{name}", ucfirst($contact['fname']), $message['message']);
+                            
+                            // $return = json_decode(bulkSDP($message),1);
+
+
+                            $payload = [
+                                'token' => $token,
+                                'username' => SDP_USERNAME2,
+                                "password" => SDP_PASSWORD2,
+                                'shortcode' => SDP_ALPHANUMERIC,
+                                'timestamp' => SDP_TIMESTAMP,
+                                'contacts' => $contact['contacts'],
+                                'message' => str_replace("{name}", ucfirst($contact['fname']), $message['message']),
+                                'messageId' => 'Tp'.(String)time(),
+                            ];
+
+                            $sdp = new SDP();
+                            // $response = json_decode($sdp->sendSMS($payload),1);
+                            $response = $sdp->sendSMS($payload);
+                            print_r($response);                            
+                        }
+                        // sleep(1);
+                    }
+
+                } else {
+                    $return = json_decode(bulkSDP($payload),1);
+                }
+                
+                if(count(array_column($contacts[0]['contacts'],'phone'))==$limit) $start += 1;
+                else $loop = false;
+                
+                // $payload['contacts'] = array_merge($payload['contacts'],$contacts[0]['contacts']);
+            }            
+        }
+
+        // 2. send from contact list
+        elseif(isset($payload['contacts']) && !empty($payload['contacts']) && count($payload['contacts']) > 0 ){
+
+            if($payload['mode'] == 1){ 
+                foreach ($payload['contacts'] as $contact){ 
+                    $message['contacts'] = $contact['phone'];
+                    $message['message'] = str_replace("{name}", ucfirst($contact['fname']), $message['message']);
+                    
+                    $sdp = new SDP();
+                    $response = json_decode($sdp->sendSMS($message),1);
+                    print_r($response); 
+                    exit;
+                }
+            
+            } else {
+
                 $chunks = array_chunk($payload['contacts'],MESSAGE_CHUNKS);
                 
-                foreach ($chunks as $chunk){
-                    foreach ($chunk as $contact){
-                        // advance: {variables} to be parameter or read from excel column
-                        $message = $payload;
-                        $message['contacts'] = [$contact];
-                        $message['message'] = str_replace("{name}", ucfirst($contact['fname']), $message['message']);
-                        
-                        $return = json_decode(bulkSDP($message),1);
-                    }
-                    // sleep(1);
+                foreach ($chunks as $chunk){ 
+                    $message['contacts'] = implode(',',array_column($chunk,'phone'));
+                    $sdp = new SDP();
+                    $response = json_decode($sdp->sendSMS($message),1);
+                    print_r($response);
                 }
-
-            } else {
-                $return = json_decode(bulkSDP($payload),1);
+                
             }
-            
-            if(count(array_column($contacts[0]['contacts'],'phone'))==$limit) $start += 1;
-            else $loop = false;
-            
-            // $payload['contacts'] = array_merge($payload['contacts'],$contacts[0]['contacts']);
+
         }
-    
-    
-    // Contact list
-    } else {
-        $chunks = array_chunk($payload['contacts'],MESSAGE_CHUNKS);
-        
-        foreach ($chunks as $chunk){ 
-            if($payload['mode']==1){ 
-                foreach ($chunk as $contact) { 
-                    // advance: {variables} to be parameter or read from excel column
-                    $message = $payload;
-                    $message['contacts'] = [$contact];
-                    $message['message'] = str_replace("{name}", $contact['fname'], $message['message']);
-                    
-                    $return = json_decode(bulkSDP($message),1);
-                }    
-                sleep(1);
-            } else {
-                $message = $payload;
-                $message['contacts'] = $chunk;
-                // print_r($message); echo "\n\n\n";
-                $return = json_decode(bulkSDP($message),1);
-            }
-        }
-    }
-    
-    if(isset($return['status']) && $return['status'] == 'SUCCESS'){
-        $messageId = validInt($payload['messageId']);
 
-        // 4. update mysql message to processing status
-        $dbdata = [
-            'action' => 4,
-            'messageId' => $messageId,
-            'pgroupId' => $payload['pgroupId'],
-            'statusId' => 5
-        ];
-        $return = PROC(Message($dbdata));
 
-        // 4. update mysql payment
-        $dbdata = [
-            'action' => 9,
-            'paymentId' => $payload['transactionId'],
-            'messageId' => $messageId,
-            'groupId' => $payload['pgroupId']
-        ];
-        $return = PROC(Payment($dbdata)); // [0][0];
 
-        // update mongo
-        $filter = [ '_id' => $messageId ];
-        $update = [ 
-            'status' => 'processing',
-            'statusId' => 5
-        ];
-        $return2 = mongoUpdate(CMESSAGE,$filter,$update); // print_r($return2); exit;
+    });
 
-        echo "Done: $messageId \n\n";
-    }
-    
-};
-
-// Consume messages from the topic
-$groupId = "0";
-$kafka->consumeMessages(KAFKA_SEND_BULK_TOPIC,$groupId,$callback);
+} catch (Throwable $e) {
+    echo "Kafka Crash: " . $e->getMessage() . PHP_EOL;
+}
