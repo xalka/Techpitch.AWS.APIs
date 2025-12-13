@@ -9,9 +9,9 @@ require __dir__.'/../../.core/.mysql.php';
 // PUT request only
 if(!ReqDelete()) ReqBad();
 
-$headers = getallheaders();
+if(!isset(HEADERS['pgroupid'])) ReqBad();
 
-if(!isset($headers['Groupid'])) ReqBad();
+$pgroupId = validInt(HEADERS['pgroupid']);
 
 // 1. Receive json
 $req = json_decode(file_get_contents('php://input'),1);
@@ -23,19 +23,19 @@ $req = json_decode(file_get_contents('php://input'),1);
 $dbdata = [
     'action' => 4,
     'id' => validInt($req['id']),
-    'customerId' => validInt($headers['Customerid']),
-    'groupId' => validInt($headers['Groupid'])
+    'customerId' => validInt(HEADERS['customerid']),
+    'pgroupId' => $pgroupId
 ];
 
 try {
     // 4. Save into mysql
-    $return = PROC(Template($dbdata))[0][0];
+    $return = PROC(Template($dbdata)); // [0][0];
 
-    if($return['deleted']){
+    if(isset($return[0][0]['deleted']) && $return[0][0]['deleted']>0){
 
         $filter = [
             '_id' => (int)$dbdata['id'],
-            'groupId' => (int)$dbdata['groupId']
+            'groupId' => $pgroupId
         ];
         $return2 = mongoDelete(CTEMPLATE,$filter);
         // print_r($return2);

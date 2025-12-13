@@ -27,7 +27,7 @@ require __dir__.'/../../.core/.procedures.php';
 // GET request only
 if(!ReqGet()) ReqBad();
 
-$headers = getallheaders();
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
 // 2. validate
 
 // 3. read from mysql
@@ -36,8 +36,8 @@ $dbdata = [
 ];
 
 
-if(isset($headers['CustomerId'])) $dbdata['customerId'] = validInt($headers['Customerid']);
-if(isset($headers['Groupid'])) $dbdata['groupId'] = validInt($headers['Groupid']);
+if(isset($headers['customerId'])) $dbdata['customerId'] = validInt($headers['customerid']);
+if(isset($headers['pgroupid'])) $dbdata['pgroupId'] = validInt($headers['pgroupid']);
 
 $payments = PROC(PAYMENT($dbdata))[0];
 print_j($payments);

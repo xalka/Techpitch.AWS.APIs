@@ -1,70 +1,64 @@
 <?php
 
-require __dir__.'/../../.config/.config.php'; 
-require __dir__.'/../../.core/.funcs.php';
-require __dir__.'/../../.core/.mongodb.php';
-require __dir__.'/../../.core/.procedures.php';
-require __dir__.'/../../.core/.mysql.php'; 
+$baseDir = dirname(__dir__,2);
+
+require_once $baseDir.'/.config/.config.php'; 
+$files = ['.funcs.php','.mysql.php','.mongodb.php','.procedures.php','KafkaHelper.php'];
+foreach ($files as $file) require_once $baseDir.'/.core/'.$file;
 
 if(!ReqPut()) ReqBad();
 
-$headers = getallheaders();
-
 $req = json_decode(file_get_contents('php://input'),1);
-// print_r($req); exit;
-foreach ($req['contacts'] as $key => $contact) {
-    $req['contacts'][$key]['phone'] = validPhone($contact['phone']);
-}
+
+$pgroupId = validInt(HEADERS['pgroupid']);
+$groupId = validInt($req['groupId']);
 
 $dbdata = [
     'action' => 3,
-    'customerId' => $headers['Customerid'],
-    'pgroupId' => $headers['Groupid'],
-    'title' => validString($req['title']),
-    'groupId' => validInt($req['id']),
-    // 'message' => $req['message']
+    'customerId' => $headers['customerid'],
+    'pgroupId' => $pgroupId,
+    'groupId' => $groupId,
+    'title' => validString($req['title'])
 ];
 
-// print_j($req['contacts']);
-
 try {
-    // 4. Save into mysql
-    $return = PROC(ContactGroup($dbdata)); print_j($return); exit; // [0][0]; // Done
+    // Update the group details
+    $return = PROC(ContactGroup($dbdata))[0][0]; // Done
 
     if(isset($return['updated']) && $return['updated'] != -1){
 
-        $groupId = $return['groupId'];
-
-        // 2. Break the contact list into chunks
-        $chunks = array_chunk($req['contacts'],GROUP_CHUNKS);
-        foreach ($chunks as $chunk) {
-            $values = [];
-            foreach ($chunk as $contact) {
-                $values[] = "($groupId, {$contact['phone']}, '{$contact['fname']}', '{$contact['lname']}')";
-            }
-            $sql = "INSERT INTO groupContacts(groupId,phone,fname,lname) VALUES ".implode(',', $values);
-            query($sql);
-        }
-        
-        // 2. Validate
-
-
-        $contacts = [
-            '_id' => validInt($return['groupId']),
-            'title' => $dbdata['title'],
-            'contacts' => $req['contacts'],
-            'pgroupId' => validInt($headers['Groupid']),
-            'active' => 1,
-            'created' => mongodate('NOW')
+        $filter = [
+            "_id" => $groupId,
+            "pgroupId" => $pgroupId
         ];
 
-        $return2 = mongoInsert(CGROUP,$contacts);
+        $updates = [
+            'title' => $req['title'],
+            'contacts' => count($req['contacts']),
+            'updatedAt' => mongodate('NOW')
+        ];
 
-        if($return2){
-            $response = [
-                'status' => 201
+        $return2 = mongoUpdate(CGROUP,$filter,$updates);
+
+        $kafka = new KafkaHelper(KAFKA_BROKER);
+
+        foreach(array_chunk($req['contacts'],GROUP_CHUNKS) as $chunk) {
+            $contacts = [
+                'contacts' => $chunk,
+                'groupId' => $groupId,
+                'pgroupId' => $pgroupId
             ];
+            // print_r(json_encode($contacts));  echo "\n\n";
+            $kafka->produceMessage(KAFKA_GROUP_CONTACTS_UPDATE,json_encode($contacts));
         }
+
+        // Flush pending messages
+        $kafka->flush();
+
+        $response = [
+            'status' => 200,
+            'message' => "Processing"
+        ];
 
     } else {
         $response = [

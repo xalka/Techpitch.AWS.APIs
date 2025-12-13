@@ -12,7 +12,7 @@ if(!ReqPost()) ReqBad();
 // 1. Receive json
 $req = json_decode(file_get_contents('php://input'),1);
 
-$headers = getallheaders();
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
 
 $dbdata = [
     'action' => 1,
@@ -22,8 +22,8 @@ $dbdata = [
     // 'adminId' => validInt($req['customerId']),
     // 'customerId' => validInt($req['customerId']),
     // 'adminId' => validInt($headers['Customerid']),
-    'customerId' => validInt($headers['Customerid']),
-    'groupId' => validInt($headers['Groupid']),
+    'customerId' => validInt($headers['customerid']),
+    'pgroupId' => validInt($headers['pgroupid']),
     'modeId' => 2,
     'statusId' => 1
 ];

@@ -8,7 +8,7 @@ require __dir__.'/../../.core/.mongodb.php';
 
 if(!ReqGet()) ReqBad();
 
-$headers = getallheaders();
+// $headers = array_change_key_case(getallheaders(), CASE_LOWER);
 
 $filter = [];
 

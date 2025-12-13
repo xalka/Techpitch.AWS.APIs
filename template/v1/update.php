@@ -9,34 +9,35 @@ require __dir__.'/../../.core/.mysql.php';
 // PUT request only
 if(!ReqPut()) ReqBad();
 
-$headers = getallheaders();
-
-if(!isset($headers['Groupid'])) ReqBad();
+if(!isset(HEADERS['pgroupid'])) ReqBad();
 
 // 1. Receive json
 $req = json_decode(file_get_contents('php://input'),1);
 
 // 2. Validate
 
+$pgroupId = HEADERS['pgroupid'];
+$id = validInt($req['id']);
+
 // 3. Check if title is exists
 $dbdata = [
     'action' => 3,
-    'id' => $req['id'],
-    'customerId' => $headers['Customerid'],
-    'groupId' => $headers['Groupid'],
-    'title' => $req['title'],
-    'message' => $req['message']
+    'id' => $id,
+    'customerId' => HEADERS['customerid'],
+    'pgroupId' => $pgroupId,
+    'title' => validString($req['title']),
+    'message' => validString($req['message'])
 ];
-
+// print_r($dbdata); exit;
 try {
     // 4. Save into mysql
-    $return = PROC(Template($dbdata))[0][0];
-
-    if($return){
+    $return = PROC(Template($dbdata));
+    
+    if(isset($return[0][0]['updated']) && $return[0][0]['updated'] !=-1){
 
         $filter = [
-            '_id' => (int)$dbdata['id'],
-            'groupId' => (int)$dbdata['groupId']
+            '_id' => (int)$id,
+            'groupId' => (int)$pgroupId
         ];
 
         $template = [
@@ -45,6 +46,7 @@ try {
             'strlen' => (int)strlen($dbdata['message']),
             'modified' => mongodate('NOW')
         ];
+
         $return2 = mongoUpdate(CTEMPLATE,$filter,$template);         
 
         if($return2){

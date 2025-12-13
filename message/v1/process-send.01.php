@@ -12,6 +12,8 @@ require __dir__.'/../../.core/.redis.php';
 
 require_once __dir__.'/../../.core/Kafka/KafkaClient.php';
 
+
+
 $kafka = new KafkaClient(KAFKA_BROKER);
 
 $callback = function ($message) {

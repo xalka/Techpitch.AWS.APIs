@@ -3,59 +3,58 @@
 // prevent from being access via 
 if(php_sapi_name() != 'cli') die('Access denied.');
 
-require __dir__.'/../../.config/.config.php'; 
-require __dir__.'/../../.core/.funcs.php'; 
-require __dir__.'/../../.core/.mysql.php'; 
-require __dir__.'/../../.core/.procedures.php';
-require __dir__.'/../../.core/.mongodb.php';
-// require __dir__.'/../../.core/.redis.php';
+$baseDir = dirname(__dir__,2);
 
-require_once __dir__.'/../../.core/Kafka/KafkaClient.php';
+require_once $baseDir.'/.config/.config.php'; 
+$files = ['.funcs.php','.mysql.php','.mongodb.php','.procedures.php','KafkaHelper.php'];
+foreach ($files as $file) require_once $baseDir.'/.core/'.$file;
 
-$kafka = new KafkaClient(KAFKA_BROKER);
-
-$callback = function ($message) {
-
-    echo "Received message: " . $message->payload . "\n";
+try {
+    $kafka = new KafkaHelper(KAFKA_BROKER);
+    $kafka->createConsumer("contact-worker-group", [KAFKA_GROUP_CONTACTS_CREATE]);
     
-    $payload = json_decode($message->payload,1);
+    $kafka->consume(function($payload) {
+        // print_r($payload);
+        echo "\nReceived & processing......\n";
+        $payload = json_decode($payload,1);
 
-    $payload['action'] = 4;
-    $payload['pgroupId'] = (int)$payload['pgroupId'];
-    $payload['groupId'] = (int)$payload['groupId'];
-    $payload['phone'] = validPhone($payload['phone']);
+        // print_r($payload); echo "\n\n";
 
-    $return = PROC(ContactGroup($payload))[0][0]; // Done
+        foreach ($payload['contacts'] as $contact) {
+            // save into mysql
+            $dbData = [
+                'action' => 4,
+                'groupId' => (int)$payload['groupId'],
+                'pgroupId' => (int)$payload['pgroupId'],
+                'phone' => validPhone($contact['phone']),
+                'fname' => $contact['fname'],
+                'lname' => $contact['lname']
+            ];
 
-    // $sql = "INSERT INTO groupContacts(groupId,phone,fname,lname) VALUES ".implode(',', $values);
-        
-    // 2. Validate
+            // print_r($dbData); echo "\n\n";
+            
+            $return1 = PROC(ContactGroup($dbData));
 
-    // $contacts = [
-    //     '_id' => validInt($return['groupId']),
-    //     'groupId' => validInt($return['groupId']),
-    //     'pgroupId' => validInt($headers['Groupid']),
-    //     'title' => $dbdata['title'],
-    //     'contacts' => $req['contacts'],
-    //     'active' => 1,
-    //     'created' => mongodate('NOW')
-    // ];
+            // print_r($return1); echo "\n\n";
 
-    unset($payload['action']);
-    $payload['_id'] = (int)$return['id'];
-    $payload['active'] = 1;
-    $payload['created'] = mongodate('NOW');
+            // save into mongoDb list of contacts
+            if(isset($return1[0][0]['created']) && $return1[0][0]['created'] > 0){
+                $dbData['_id'] = (int)$return1[0][0]['id'];
+                unset($dbData['action']);
+                $return2 = mongoInsert(GCONTACT,$dbData);
 
-    $return2 = mongoInsert(GCONTACT,$payload);
+                // print_r($return2); echo "\n\n";
 
-    if($return2){
-        $response = [
-            'status' => 201
-        ];
-    }
-    
-};
+                // print_r($return2);
+                // check if mongoDb fails
+                echo "\n\nDone.\n";
+            }
+        }
 
-// Consume messages from the topic
-$groupId = "0";
-$kafka->consumeMessages(KAFKA_GROUP_CONTACTS_CREATE,$groupId,$callback);
+    });
+
+
+} catch (\Throwable $th) {
+    echo "Kafka Crash: " . $th->getMessage() . PHP_EOL;
+    error_log("Error: " . $th->getMessage() . " in " . $th->getFile() . ":" . $th->getLine());
+}
