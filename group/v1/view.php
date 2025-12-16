@@ -6,64 +6,38 @@ require __dir__.'/../../.core/.mongodb.php';
 
 if(!ReqGet()) ReqBad();
 
-$headers = getallheaders();
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
 
-if(!isset($headers['Groupid']) && empty($headers['Groupid'])) ReqBad(); 
+if(!isset($headers['[pgroupid']) && empty($headers['pgroupid'])) ReqBad(); 
 
-$pgroupId = validInt($headers['Groupid']);
 
-$match = ['pgroupId' => $pgroupId];
+$filter = [
+    'pgroupId' => validInt($headers['pgroupid'])
+];
 
-if (isset($_GET['id']) && !empty($_GET['id'])){
-    $match['_id'] = validInt($_GET['id']);
+if (isset($_GET['groupId']) && !empty($_GET['groupId'])){
+    $filter['_id'] = validInt($_GET['groupId']);
 }
 
 if (isset($_GET['title']) && !empty($_GET['title'])){
-    $match['title'] = ['$regex' => validString($_GET['title']), '$options' => 'i'];
+    $filter['title'] = ['$regex' => validString($_GET['title']), '$options' => 'i'];
 }
 
 if (isset($_GET['startdate']) && !empty($_GET['startdate'])) {
-    $match['created']['$gte'] = mongodate($_GET['startdate']);
+    $filter['created']['$gte'] = mongodate($_GET['startdate']);
 }
 
 if (isset($_GET['enddate']) && !empty($_GET['enddate'])) {
-    $match['created']['$lte'] = mongodate($_GET['enddate']);
+    $filter['created']['$lte'] = mongodate($_GET['enddate']);
 }
 
-if (isset($_GET['phone']) && !empty($_GET['phone'])){
-    $match['contacts'] = [
-        '$elemMatch' => [
-            'phone' => validPhone($_GET['phone'])
-        ]
-    ];    
-}
-
-if (isset($_GET['name']) && !empty($_GET['name'])){
-    $name = validString($_GET['name']);
-    $match['contacts'] = [
-        '$elemMatch' => [
-            '$or' => [
-                ['fname' => ['$regex' => $name, '$options' => 'i']],
-                ['lname' => ['$regex' => $name, '$options' => 'i']]
-            ]
-        ]
-    ];
-}
-
-$pipeline = [
-    ['$match' => $match ],
-    ['$sort' => ['_id' => -1]],
-    ['$skip' => isset($_GET['start']) ? (int)$_GET['start'] : 0],
-    ['$limit' => isset($_GET['limit']) ? (int)$_GET['limit'] : 10],
-    ['$project' => [
-            '_id' => 1,
-            'pgroupId' => 1,
-            'title' => 1,
-            'created' => 1,
-            'active' => 1,
-            'count' => ['$size' => ['$ifNull' => ['$contacts', []]]]
-        ]
-    ]
+$options = [
+	'skip' => isset($_GET['start']) ? $_GET['start'] : 0,
+	'limit' => isset($_GET['limit']) ? $_GET['limit'] : LIMIT,
+	'sort' => ['_id' => -1],
+    // 'projection' => [
+    //     '_id'=>1, 'phone'=>1, 'fname'=>1, 'lname'=>1, 'pgroupId'=>1, 'groupId'=>1, 'active'=>1, 'created'=>1
+    // ],
 ];
 
-print_j(mongoDateTime(mongoAggregate(CGROUP,$pipeline)));
+print_j(mongoDateTime(mongoSelect(CGROUP,$filter,$options)));

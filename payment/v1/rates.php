@@ -6,7 +6,7 @@ require __dir__.'/../../.core/.mongodb.php';
 require __dir__.'/../../.core/.mysql.php'; 
 require __dir__.'/../../.core/.procedures.php';
 
-$headers = getallheaders();
+// $headers = getallheaders();
 
 // if(isset($headers['CustomerId'])) $dbdata['customerId'] = validInt($headers['Customerid']);
 // if(isset($headers['Groupid'])) $dbdata['groupId'] = validInt($headers['Groupid']);

@@ -1,27 +1,22 @@
 <?php
 
-require __dir__.'/../../.config/.config.php'; 
-require __dir__.'/../../.core/.funcs.php';
-require __dir__.'/../../.core/.mongodb.php';
-require __dir__.'/../../.core/.procedures.php';
-require __dir__.'/../../.core/.mysql.php'; 
+$baseDir = dirname(__dir__,2);
+
+require_once $baseDir.'/.config/.config.php'; 
+$files = ['.funcs.php','.mysql.php','.mongodb.php','.procedures.php','KafkaHelper.php'];
+foreach ($files as $file) require_once $baseDir.'/.core/'.$file;
 
 if(!ReqPost()) ReqBad();
 
-$headers = getallheaders();
-
 $req = json_decode(file_get_contents('php://input'),1);
 
-foreach ($req['contacts'] as $key => $contact) {
-    $req['contacts'][$key]['phone'] = validPhone($contact['phone']);
-}
+$pgroupId = validInt(HEADERS['pgroupid']);
 
 $dbdata = [
     'action' => 1,
-    'customerId' => $headers['Customerid'],
-    'pgroupId' => $headers['Groupid'],
-    'title' => $req['title'],
-    // 'message' => $req['message']
+    'customerId' => HEADERS['customerid'],
+    'pgroupId' => $pgroupId,
+    'title' => validString($req['title'])
 ];
 
 try {
@@ -29,39 +24,38 @@ try {
     $return = PROC(ContactGroup($dbdata))[0][0]; // Done
 
     if(isset($return['created']) && $return['created'] > 0){
-
+        $pgroupId = $pgroupId;
         $groupId = $return['groupId'];
 
-        // 2. Break the contact list into chunks
-        $chunks = array_chunk($req['contacts'],GROUP_CHUNKS);
-        foreach ($chunks as $chunk) {
-            $values = [];
-            foreach ($chunk as $contact) {
-                $values[] = "($groupId, {$contact['phone']}, '{$contact['fname']}', '{$contact['lname']}')";
-            }
-            $sql = "INSERT INTO groupContacts(groupId,phone,fname,lname) VALUES ".implode(',', $values);
-            query($sql);
-        }
-        
-        // 2. Validate
-
-
-        $contacts = [
-            '_id' => validInt($return['groupId']),
-            'title' => $dbdata['title'],
-            'contacts' => $req['contacts'],
-            'pgroupId' => validInt($headers['Groupid']),
+        $group = [
+            '_id' => (int)$groupId,
+            'pgroupId' => $pgroupId,
+            'title' => $req['title'],
+            'contacts' => count($req['contacts']),
             'active' => 1,
             'created' => mongodate('NOW')
         ];
 
-        $return2 = mongoInsert(CGROUP,$contacts);
+        $return2 = mongoInsert(CGROUP,$group);
 
-        if($return2){
-            $response = [
-                'status' => 201
+        $kafka = new KafkaHelper(KAFKA_BROKER);
+
+        foreach(array_chunk($req['contacts'],GROUP_CHUNKS) as $chunk) {
+            $contacts = [
+                'contacts' => $chunk,
+                'groupId' => $groupId,
+                'pgroupId' => $pgroupId
             ];
+            $kafka->produceMessage(KAFKA_GROUP_CONTACTS_CREATE,json_encode($contacts));
         }
+
+        // Flush pending messages
+        $kafka->flush();        
+
+        $response = [
+            'status' => 200,
+            'message' => "Processing"
+        ];
 
     } else {
         $response = [

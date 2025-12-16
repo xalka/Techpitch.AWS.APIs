@@ -1,20 +1,17 @@
 <?php
 
 require __dir__.'/../../.config/.config.php'; 
-require __dir__.'/../../.core/.funcs.php'; 
-// require __dir__.'/../../.config/.redis.php'; 
-// require __dir__.'/../../.config/Redis/Connection.php'; 
-// require __dir__.'/../../.config/Redis/Queue.php'; 
+require __dir__.'/../../.core/.funcs.php';
 require __dir__.'/../../.core/.mongodb.php';
 require __dir__.'/../../.core/.procedures.php';
-require __dir__.'/../../.core/.mysql.php'; 
+require __dir__.'/../../.core/.mysql.php';
 
 // POST request only
 if(!ReqPost()) ReqBad();
 
-$headers = getallheaders();
+if(!isset(HEADERS['pgroupid']) || empty(HEADERS['pgroupid'])) ReqBad();
 
-if(!isset($headers['Groupid'])) ReqBad();
+$pgroupId = validInt(HEADERS['pgroupid']);
 
 // 1. Receive json
 $req = json_decode(file_get_contents('php://input'),1);
@@ -24,24 +21,24 @@ $req = json_decode(file_get_contents('php://input'),1);
 // 3. Check if title is exists
 $dbdata = [
     'action' => 1,
-    'customerId' => $headers['Customerid'],
-    'groupId' => $headers['Groupid'],
-    'title' => $req['title'],
-    'message' => $req['message']
+    'customerId' => HEADERS['customerid'],
+    'pgroupId' => $pgroupId,
+    'title' => validString($req['title']),
+    'message' => validString($req['message'])
 ];
 
 try {
     // 4. Save into mysql
-    $return = PROC(Template($dbdata)); // print_r($return); exit; //[0][0];
+    $return = PROC(Template($dbdata));
 
-    if(!empty($return) && isset($return[0][0]['created'])){
+    if(isset($return[0][0]['created']) && $return[0][0]['created']>0){
         $return = $return[0][0];
         $template = [
-            '_id' => (int)$return['templateId'],
+            '_id' => (int)$return['id'],
             'title' => $dbdata['title'],
             'message' => $dbdata['message'],
             'strlen' => (int)strlen($dbdata['message']),
-            'groupId' => (int)$dbdata['groupId'],
+            'groupId' => $pgroupId,
             'created' => mongodate('NOW')
         ];
 
@@ -54,14 +51,14 @@ try {
         } else {
             $response = [
                 'status' => 401,
-                'error' => 'Technical error'
+                'message' => 'Technical error'
             ];               
         }
 
     } else {
         $response = [
             'status' => 401,
-            'error' => 'Duplicate'
+            'message' => $return[0][0]['message']
         ];        
     }
 

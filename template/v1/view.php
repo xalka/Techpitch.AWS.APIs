@@ -7,13 +7,10 @@ require __dir__.'/../../.core/.mongodb.php';
 // GET request only
 if(!ReqGet()) ReqBad();
 
-// 1. Receive $_GET
-$headers = getallheaders();
-
-if(!isset($headers['Groupid'])) ReqBad();
+if(!isset(HEADERS['pgroupid'])) ReqBad();
 
 $filter = [
-    'groupId' => validInt($headers['Groupid'])
+    'groupId' => validInt(HEADERS['pgroupid'])
 ];
 
 if(isset($_GET['id'])) $filter['_id'] = validInt($_GET['id']);
@@ -30,23 +27,13 @@ if (isset($_GET['enddate']) && !empty($_GET['enddate'])) {
     $filter['created']['$lte'] = mongodate($_GET['enddate']);
 }
 
-$start = isset($_GET['start']) ? (int)$_GET['start'] : 0;
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : LIMIT;
-
-$pipeline = [
-    [ '$match' => $filter ],
-    [
-        '$project' => [
-            '_id'     => 1,
-            'title'   => 1,
-            'message' => 1,
-            'created' => 1,
-            'strlen'  => [ '$strLenCP' => '$message' ]
-        ]
-    ],
-    [ '$sort' => [ '_id' => -1 ] ],
-    [ '$skip' => $start ],
-    [ '$limit' => $limit ]
+$options = [
+	'skip' => isset($_GET['start']) ? $_GET['start'] : 0,
+	'limit' => isset($_GET['limit']) ? $_GET['limit'] : LIMIT,
+	'sort' => ['_id' => 1],
+    'projection' => [
+        '_id'=>1, 'title'=>1, 'message'=>1, 'strlen' => 1, 'created'=>1
+    ],	
 ];
 
-print_j(mongoDateTime(mongoAggregate(CTEMPLATE, $pipeline)));
+print_j(mongoDateTime(mongoSelect(CTEMPLATE,$filter,$options)));

@@ -2,10 +2,6 @@
 
 // https://www.php.net/manual/en/class.mongodb-driver-writeresult.php
 
-function mongoConnectI(){
-	return new \MongoDB\Driver\Manager("mongodb://".DB_MONGO_USER.":".rawurlencode(DB_MONGO_PASS)."@".DB_MONGO_HOST.":".DB_MONGO_PORT);
-}
-
 function mongoConnect(): ?\MongoDB\Driver\Manager {
     try {
         $uri = sprintf(
@@ -82,12 +78,18 @@ function mongoUpdate($collection, $filter = [], $updateFields = [], $options = [
     }
 }
 
-function mongoInsertOrUpdate($collection,$filter=[], $update=[], $options=['multi'=>true,'upsert'=>true]){
+function mongoInsertOrUpdate($collection,$filter=[], $update=[], $options=['multi'=>false,'upsert'=>true]){
     $manager = mongoConnect();
     if (!$manager) return;
 	
-	$update = ['$setOnInsert' => $update, '$set' => $update];
 	$bulkWrite = new MongoDB\Driver\BulkWrite;
+
+    $update = [
+        '$set' => $update,
+        // '$setOnInsert' => $update, 
+        '$setOnInsert' => ['created' => new MongoDB\BSON\UTCDateTime()]
+    ];
+
 	$bulkWrite->update($filter, $update, $options);
 	try {
 	    $return = $manager->executeBulkWrite(DB_MONGO.'.'.$collection, $bulkWrite);	

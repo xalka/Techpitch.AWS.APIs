@@ -3,39 +3,38 @@
 // prevent from being access via 
 if(php_sapi_name() != 'cli') die('Access denied.');
 
-require __dir__.'/../../.config/.config.php'; 
-require __dir__.'/../../.core/.funcs.php'; 
-require __dir__.'/../../.core/.redis.php';
+echo "\nStart ..... \n";
 
-$token = json_decode(redisGetValue(SDP_TOKEN),1);
-// $tokenII = json_decode(redisGetValue(SDP_REFRESH_TOKEN),1);
-
-$headers = [
-    'Content-Type: application/json',
-    'Accept: application/json',
-    'X-Requested-With: XMLHttpRequest',
-    'X-Authorization: Bearer '.$token
+$baseDir = dirname(__dir__,2);
+$files = [
+    '/.config/.config.php',
+    '/.core/.funcs.php',
+    '/.core/RedisHelper.php',
+    '/.core/SDP.php'
 ];
-// print_j($headers); exit;
-$request = [
-    "requestId" =>  time(),
-    "channel"   =>  "SMS",
-    "operation" =>  "SendSMS",
-    "requestParam"  =>  [
-        "data"  =>  [
-            ["name" =>  "LinkId", "Value" =>  "00010310189519161781865526"],
-            ["name" =>  "Msisdn", "Value" =>  254715003414],
-            ["name" =>  "Content", "Value" =>  "Thank You for Ondemand Subscription SAFRI TEST TUN Subscption test Send sms"],
-            ["name" =>  "OfferCode", "Value" =>  "001075102371"],
-            ["name" =>  "CpId", "Value" =>  SDP_ID],
-        ]
-    ]
-];
-// print_j($request); exit;
-$return = callAPI("POST", SDP1.'api/public/SDP/sendSMSRequest', $headers, $request);
+foreach ($files as $file) require_once $baseDir.$file;
 
-print_r($return);
-// save to redis
+$redis = new RedisHelper();
+$token = $redis->get(SDP_TOKEN);
+
+$payload = [
+    'token' => $token,
+    'username' => SDP_USERNAME2,
+    "password" => SDP_PASSWORD2,
+    'shortcode' => SDP_ALPHANUMERIC,
+    'timestamp' => SDP_TIMESTAMP,
+    'contacts' => "254715003414,254722636396",
+    'message' => "Testing bulk sms",
+    'messageId' => 'Tp'.(String)time(),
+];
+
+$sdp = new SDP();
+// $response = json_decode($sdp->sendSMS($payload),1);
+$response = $sdp->sendSMS($payload);
+print_r($response);
+
+
+echo "\nDone.";
 
 // {
 //     "keyword": "Bulk",

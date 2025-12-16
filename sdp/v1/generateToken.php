@@ -3,32 +3,26 @@
 // prevent from being access via 
 if(php_sapi_name() != 'cli') die('Access denied.');
 
-require __dir__.'/../../.config/.config.php'; 
-require __dir__.'/../../.core/.funcs.php'; 
-// require __dir__.'/../../.core/.mysql.php'; 
-require __dir__.'/../../.core/.redis.php'; 
-// require __dir__.'/../../.core/Redis/Connection.php'; 
-// require __dir__.'/../../.core/Redis/Queue.php'; 
-// require __dir__.'/../../.core/.mongodb.php';
-// require __dir__.'/../../.core/.procedures.php';
-
-$refreshToken = json_decode(redisGetValue(SDP_REFRESH_TOKEN),1);// print_r($refreshToken);
-
-$url = SDP1."api/auth/RefreshToken";
-$headers = [
-    'Content-Type: application/json',
-    'X-Requested-With: XMLHttpRequest',
-    'X-Authorization: Bearer '.$refreshToken
+$baseDir = dirname(__dir__,2);
+$files = [
+    '/.config/.config.php',
+    '/.core/.funcs.php',
+    '/.core/RedisHelper.php',
+    '/.core/SDP.php'
 ];
-// print_r($headers);
-$return = json_decode(callAPI('GET', $url, $headers),1); // print_r($return);
+foreach ($files as $file) require_once $baseDir.$file;
 
-if(isset($return['token'])){
-    unset($return['msg']);
-    // redisSetValue(SDP_TOKEN,json_encode($return['token']),SDP_TOKEN_DURATION);
-    redisSetValue(SDP_TOKEN,json_encode($return['token']));
+$redis = new RedisHelper();
+$token = $redis->get(SDP_REFRESH_TOKEN);
+
+$sdp = new SDP();
+$payload = [
+    "token" => $token
+];
+$response = json_decode($sdp->generateToken($payload),1);
+
+if(isset($response['token'])){
+    $redis = new RedisHelper();
+    $value = $redis->set(SDP_TOKEN,$response['token'],SDP_TOKEN_DURATION);
     echo "Successful\n";
 }
-
-// send email | SMS to admins
-// log

@@ -4,11 +4,11 @@ require __dir__.'/../../.config/.config.php';
 require __dir__.'/../../.core/.funcs.php'; 
 require __dir__.'/../../.core/.mongodb.php';
 
-$headers = getallheaders();
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
 
 $filter = [];
 
-if(isset($headers['Groupid'])) $filter['groupId'] = validInt($headers['Groupid']);
+if(isset($headers['pgroupid'])) $filter['groupId'] = validInt($headers['pgroupid']);
 if(isset($_GET['alphanumericId'])) $filter['_id'] = validInt($_GET['alphanumericId']);
 
 if(isset($_GET['title'])) $filter['title'] = ['$regex' => validString($_GET['title']), '$options' => 'i'];

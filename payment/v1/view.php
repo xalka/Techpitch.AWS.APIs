@@ -9,7 +9,7 @@ require __dir__.'/../../.core/.procedures.php';
 // GET request only
 if(!ReqGet()) ReqBad();
 
-$headers = getallheaders();
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
 // 2. validate
 
 // 3. read from mysql
@@ -19,8 +19,8 @@ $dbdata = [
 ];
 
 if(isset($_GET['paymentId'])) $dbdata['paymentId'] = validInt($_GET['paymentId']);
-if(isset($headers['CustomerId'])) $dbdata['customerId'] = validInt($headers['Customerid']);
-if(isset($headers['Groupid'])) $dbdata['groupId'] = validInt($headers['Groupid']);
+if(isset($headers['customerId'])) $dbdata['customerId'] = validInt($headers['customerid']);
+if(isset($headers['pgroupid'])) $dbdata['pgroupId'] = validInt($headers['pgroupid']);
 if(isset($_GET['starttime']) && !empty($_GET['starttime'])) $dbdata['starttime'] = $_GET['starttime'];
 if(isset($_GET['endtime']) && !empty($_GET['endtime'])) $dbdata['endtime'] = $_GET['endtime'];
 if(isset($_GET['amount']) && !empty($_GET['amount'])) $dbdata['amount'] = (int)$_GET['amount'];

@@ -9,7 +9,7 @@ require __dir__.'/../../.core/.mysql.php';
 // PUT request only
 if(!ReqDelete()) ReqBad();
 
-$headers = getallheaders();
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
 
 // 1. Receive json
 $req = json_decode(file_get_contents('php://input'),1);
@@ -21,8 +21,8 @@ $req = json_decode(file_get_contents('php://input'),1);
 $dbdata = [
     'action' => 2,
     'groupId' => validInt($req['id']),
-    'customerId' => validInt($headers['Customerid']),
-    'pgroupId' => validInt($headers['Groupid'])
+    'customerId' => validInt($headers['customerid']),
+    'pgroupId' => validInt($headers['pgroupid'])
 ];
 
 try {
@@ -36,13 +36,13 @@ try {
             'pgroupId' => (int)$dbdata['pgroupId']
         ];
         $return2 = mongoDelete(CGROUP,$filter);
-        // print_r($return2);
+        $return3 = mongoDelete(GCONTACT,$filter);
 
-        if($return2){
+        //if($return2 && $return3){
             $response = [
                 'status' => 201
             ];
-        };
+        //};
 
     } else {
         $response = [

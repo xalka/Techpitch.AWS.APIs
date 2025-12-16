@@ -6,7 +6,7 @@ require __dir__.'/../../.core/.mysql.php';
 // require __dir__.'/../../.config/.mongodb.php';
 require __dir__.'/../../.core/.procedures.php';
 
-$headers = getallheaders();
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
 
 // GET request only
 if(ReqGet()){
@@ -20,7 +20,7 @@ if(ReqGet()){
     $dbdata = [
         'action' => 13,
         // 'adminId' => validInt($headers['Customerid']),
-        'groupId' => validInt($headers['Groupid']),
+        'pgroupId' => validInt($headers['pgroupid']),
         'statusId' => 3
     ];
     $balance = PROC(PAYMENT($dbdata));

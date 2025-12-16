@@ -8,7 +8,8 @@ TIMESTAMP=$(date +%Y%m%d%H%M%S)
 # Database configurations
 MYSQL_USER="root"
 MYSQL_PASSWORD="NOV.2014.TEN"
-MYSQL_DB="tpsys"
+MYSQL_DB="tpsyswithdata"
+
 MONGODB_DB="tpsys"
 MONGODB_USER="devOps"
 MONGODB_PASS="working.Dev2"
@@ -93,8 +94,8 @@ git_push() {
     title=${title:-"System backup at $(date +"%Y-%m-%d %H:%M")"}
 
     # Get branch name
-    read -p "To which branch? [development] " branch
-    branch=${branch:-"development"}
+    read -p "To which branch? [dev] " branch
+    branch=${branch:-"dev"}
 
     # Perform git operations
     git add -A
@@ -122,7 +123,7 @@ main() {
 
     # Execute functions in sequence
     clean_previous_dumps
-    #export_mysql
+    export_mysql
     #export_mongodb
     git_push
     set_permissions

@@ -6,7 +6,7 @@ function img2base64($img) {
     return 'data:image/jpeg;base64,' . $base64;    
 }
 
-function bulkSDP($payload){
+function bulkSDPDel($payload){
     $token = json_decode(redisGetValue(SDP_TOKEN),1);
     $headers = [
         'Content-Type: application/json',
@@ -273,7 +273,10 @@ function SaveMessage($payload){
             if(is_numeric($value)) $dbdata[$key] = validInt($value);
         }
         if(mongoInsert(CMESSAGE,$dbdata)){
-            $response = [ '_id' => $dbdata['_id'] ];
+            $response = [ 
+                '_id' => $dbdata['_id'],
+                'created' => 1
+            ];
         } else {
             $response = [
                 'created' => 0,
@@ -374,7 +377,10 @@ function callAPI($method=null, $url=null, $headers=null, $request=null){
 
         case "GET":
         default:
-            if($request) $url = sprintf("%s?%s", $url, http_build_query(json_decode($request,1)));
+            if($request){
+                $url = sprintf("%s?%s", $url, http_build_query(json_decode($request,1)));
+                // print_r($url); exit;
+            }
     }
 
     curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false); // 1
@@ -400,7 +406,11 @@ function callAPI($method=null, $url=null, $headers=null, $request=null){
     $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     curl_close($curl);
     if ($status === 200) return $response;
-    else return "Failed; Status: $status. Response: $response";
+    else return [
+        "Status" => $status,  
+        "message" => "Failed",
+        "response" => $response
+    ];
 }
 
 function decrypt($data) { return $data;

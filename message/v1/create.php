@@ -1,33 +1,34 @@
 <?php
 
-require_once __dir__.'/../../.config/.config.php'; 
-require_once __dir__.'/../../.core/.funcs.php'; 
+$baseDir = dirname(__dir__,2);
+
+require_once $baseDir.'/.config/.config.php'; 
+require_once $baseDir.'/.core/.funcs.php'; 
 
 // POST request only
 if(!ReqPost()) ReqBad();
 
-require_once __dir__.'/../../.core/.mysql.php'; 
-require_once __dir__.'/../../.core/.mongodb.php';
-require_once __dir__.'/../../.core/.procedures.php';
-require_once __dir__.'/../../.core/Kafka/KafkaClient.php';
 
-$headers = getallheaders();
+$files = ['.mysql.php','.mongodb.php','.procedures.php','KafkaHelper.php'];
+foreach ($files as $file) require_once $baseDir.'/.core/'.$file;
+
+$headers = array_change_key_case(getallheaders(),CASE_LOWER);
 
 // Receive json
 $req = json_decode(file_get_contents('php://input'),1);
 
-writeToFile(LOG_FILE,json_encode($req,JSON_UNESCAPED_UNICODE));
+// writeToFile(LOG_FILE,json_encode($req,JSON_UNESCAPED_UNICODE));
 
-$customerId = $headers['Customerid'];
-$pgroupId = $headers['Groupid'];
+$customerId = $headers['customerid'];
+$pgroupId = $headers['pgroupid'];
 // $alphanumericId = $req['alphanumericId']; // ?? $headers['Alphanumericid'];
 
 $headers = [
-    'Content-Type: application/json',
+    // 'Content-Type: application/json',
     // 'Alphanumericid: '. $alphanumericId,
     // 'Alphanumeric: '. $alphanumeric,
-    'Customerid: '. $customerId,
-    'Groupid: '. $pgroupId
+    'customerid: '. $customerId,
+    'pgroupid: '. $pgroupId
 ];
 
 // get alphanumeric
@@ -39,14 +40,15 @@ if(isset($req['alphanumericId']) && $req['alphanumericId'] ){
     // } else {
         $url = API_HOST."alphanumeric/v1/view";
         $request = [ 'alphanumericId' => validInt($req['alphanumericId']) ];
-        $alphanumeric = json_decode(callAPI('GET',$url,$headers,$request),1); // print_r($alphanumeric[0]['title']);
+        $alphanumeric = json_decode(callAPI('GET',$url,$headers,$request),1);
+        if(isset($alphanumeric[0]) && !empty($alphanumeric[0])) $alphanumeric = $alphanumeric[0];
 
         // if(empty($alphanumeric)){
         //     $req['alphanumericId'] = SDP_ALPHANUMERIC_ID;
         //     $req['alphanumeric'] = SDP_ALPHANUMERIC;
         // } else {
-            $req['alphanumericId'] = $alphanumeric[0]['_id'];
-            $req['alphanumeric'] = $alphanumeric[0]['title'];
+            $req['alphanumericId'] = $alphanumeric['_id'];
+            $req['alphanumeric'] = $alphanumeric['title'];
         // }
     // }
 } else {
@@ -54,7 +56,8 @@ if(isset($req['alphanumericId']) && $req['alphanumericId'] ){
     $req['alphanumeric'] = SDP_ALPHANUMERIC;    
 }
 
-$req['typeId'] = isset($headers['Method']) && $headers['Method']=='transaction' ? 1 : 2;
+// $req['typeId'] = isset($headers['Method']) && $headers['Method']=='transaction' ? 1 : 2;
+$req['typeId'] = 2;
 $req['pgroupId'] = $pgroupId;
 $req['customerId'] = $customerId;
 

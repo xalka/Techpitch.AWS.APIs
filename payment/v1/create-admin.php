@@ -10,17 +10,15 @@ require __dir__.'/../../.core/.procedures.php';
 if(!ReqPost()) ReqBad();
 
 // 1. Receive json
-$req = json_decode(file_get_contents('php://input'),1);
-
-$headers = getallheaders();
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
 
 $dbdata = [
     'action' => 12,
     // 'rate' => $req['rate'],
     'amount' => validInt($req['amount']),
-    'adminId' => validInt($headers['Adminid']),
+    'adminId' => validInt($headers['adminid']),
     // 'reference' => validString($req['reference']),
-    'groupId' => validInt($req['groupId']),
+    'pgroupId' => validInt($req['pgroupId']),
     'modeId' => validInt($req['modeId']),
     'statusId' => 3
 ];
