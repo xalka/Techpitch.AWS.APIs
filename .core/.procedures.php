@@ -36,7 +36,7 @@ function Message($data=null){
 	$shortcodeId = isset($data['shortcodeId'])  && !empty($data['shortcodeId']) ? $data['shortcodeId'] : 'null';
 	$offercodeId = isset($data['offercodeId'])  && !empty($data['offercodeId']) ? $data['offercodeId'] : 'null';
 	$typeId = isset($data['typeId'])  && !empty($data['typeId']) ? $data['typeId'] : 'null';
-	$mode = isset($data['mode'])  && !empty($data['mode']) ? $data['mode'] : '0';
+	$modeId = isset($data['modeId'])  && !empty($data['modeId']) ? $data['modeId'] : '0';
 	$statusId = isset($data['statusId'])  && !empty($data['statusId']) ? $data['statusId'] : 'null';
 	$units = isset($data['units'])  && !empty($data['units']) ? $data['units'] : 'null';
 	$delivered = isset($data['delivered'])  && !empty($data['delivered']) ? $data['delivered'] : 'null';
@@ -54,7 +54,7 @@ function Message($data=null){
 	$start = isset($data['start'])  && !empty($data['start']) ? $data['start'] : START;
 	$limit = isset($data['limit'])  && !empty($data['limit']) ? $data['limit'] : LIMIT;
 
-	return "MESSAGE($action,$messageId,$pgroupId,$groupId,$customerId,$adminId,$phone,'$reference','$title','$message','$alphanumeric',$alphanumericId,$shortcodeId,$offercodeId,$typeId,'$mode',$statusId,$units,$delivered,$sent,$trecipients,$tfailed,$tdelivered,'$succMessage','$errMessage',$blocked,'$scheduledAt','$sentAt','$starttime','$endtime',$start,$limit)";
+	return "MESSAGE($action,$messageId,$pgroupId,$groupId,$customerId,$adminId,$phone,'$reference','$title','$message','$alphanumeric',$alphanumericId,$shortcodeId,$offercodeId,$typeId,'$modeId',$statusId,$units,$delivered,$sent,$trecipients,$tfailed,$tdelivered,'$succMessage','$errMessage',$blocked,'$scheduledAt','$sentAt','$starttime','$endtime',$start,$limit)";
 }
 
 function Template($data=null){
