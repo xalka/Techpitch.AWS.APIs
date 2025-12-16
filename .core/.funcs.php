@@ -388,7 +388,7 @@ function callAPI($method=null, $url=null, $headers=null, $request=null){
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
     curl_setopt($curl, CURLOPT_URL, $url);
-    curl_setopt($curl, CURLOPT_HTTPHEADER,$headers);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
     
     // OPTIONS:
     // curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);

@@ -22,16 +22,18 @@ foreach ($files as $file) require_once $baseDir.'/.core/'.$file;
 
 try {
 
-    echo "Connecting to Kafka...\n";
     $kafka = new KafkaHelper(KAFKA_BROKER);
 
-    echo "Subscribing to topic sendbulksms...\n";
     $kafka->createConsumer("sms-worker-group", [KAFKA_SEND_BULK_TOPIC]);
-
-    echo "Listening...\n";
 
     $kafka->consume(function($payload) {
         $payload = json_decode($payload,1);
+
+        // echo "\n\nReceived & processing......\n";
+        // print_r($payload); 
+        // echo "\n\n";
+
+        $headers = $payload['headers'];
 
         $redis = new RedisHelper();
         $token = $redis->get(SDP_TOKEN);
@@ -45,8 +47,8 @@ try {
             'messageId' => $payload['messageId'],
             'message' => $payload['message'],
         ];
-        
-        // 1. Send from contact group
+
+        // 1. Get contacts from contact group if contactGroupId is set
         if(isset($payload['contactGroupId']) && $payload['contactGroupId'] > 0 ){
 
             $url = API_HOST."group/v1/detail";
@@ -56,94 +58,72 @@ try {
 
             while($loop){
                 $request = [
-                    'id' => $payload['contactGroupId'],
+                    'groupId' => $payload['contactGroupId'],
                     'start' => $start,
                     'limit' => $limit
                 ];
                 $contacts = json_decode(callAPI('GET',$url,$headers,$request),1); 
 
-                // $payload['contacts'] = $contacts[0]['contacts'];
+                // 1.1 Check if its custom or bulk message
+                if($payload['mode'] == 1){
+                    foreach ($contacts as $contact){
+                        // modify to take more custom parameter {ACCOUNT_NAME} {ACCOUNT_NUMBER} {{AMOUNT}}
+                        $message['message'] = str_replace("{name}", ucfirst($contact['fname']), $message['message']);
+                        $message['contacts'] = $contact['phone'];
 
-                // implode(',',array_column($payload['contacts'],'phone'))
+                        $sdp = new SDP();
+                        $response = json_decode($sdp->sendSMS($message),1);
+                        print_r($response);
 
-                $response = saveMessageRecipients($payload);
-                if($response['status']==500){
-                    echo "Technical problem";
-                }          
-
-                // send to sdp
-                // check if its normal or custom
-                if($payload['mode']==1){
-                    $chunks = array_chunk($payload['contacts'],MESSAGE_CHUNKS);
-                    
-                    foreach ($chunks as $chunk){
-                        foreach ($chunk as $contact){
-                            // advance: {variables} to be parameter or read from excel column
-                            $message = $payload;
-                            // $message['contacts'] = [$contact];
-                            $message['message'] = str_replace("{name}", ucfirst($contact['fname']), $message['message']);
-                            
-                            // $return = json_decode(bulkSDP($message),1);
-
-
-                            $payload = [
-                                'token' => $token,
-                                'username' => SDP_USERNAME2,
-                                "password" => SDP_PASSWORD2,
-                                'shortcode' => SDP_ALPHANUMERIC,
-                                'timestamp' => SDP_TIMESTAMP,
-                                'contacts' => $contact['contacts'],
-                                'message' => str_replace("{name}", ucfirst($contact['fname']), $message['message']),
-                                'messageId' => 'Tp'.(String)time(),
-                            ];
-
-                            $sdp = new SDP();
-                            // $response = json_decode($sdp->sendSMS($payload),1);
-                            $response = $sdp->sendSMS($payload);
-                            print_r($response);                            
+                        if( isset($response['statusCode']) && $response['statusCode'] == 'SC0000' ){
+                            // save into recipient table
+                            // depends on the dlr
+                            // print_r($response);
                         }
-                        // sleep(1);
+                        
                     }
 
+                // bulk
                 } else {
-                    $return = json_decode(bulkSDP($payload),1);
-                }
-                
-                if(count(array_column($contacts[0]['contacts'],'phone'))==$limit) $start += 1;
-                else $loop = false;
-                
-                // $payload['contacts'] = array_merge($payload['contacts'],$contacts[0]['contacts']);
-            }            
-        }
+                    // $message['contacts'] = $contacts;
+                    $message['contacts'] = implode(',',array_column($contacts,'phone'));
 
-        // 2. send from contact list
-        elseif(isset($payload['contacts']) && !empty($payload['contacts']) && count($payload['contacts']) > 0 ){
-
-            if($payload['mode'] == 1){ 
-                foreach ($payload['contacts'] as $contact){ 
-                    $message['contacts'] = $contact['phone'];
-                    $message['message'] = str_replace("{name}", ucfirst($contact['fname']), $message['message']);
-                    
-                    $sdp = new SDP();
-                    $response = json_decode($sdp->sendSMS($message),1);
-                    print_r($response); 
-                    exit;
-                }
-            
-            } else {
-
-                $chunks = array_chunk($payload['contacts'],MESSAGE_CHUNKS);
-                
-                foreach ($chunks as $chunk){ 
-                    $message['contacts'] = implode(',',array_column($chunk,'phone'));
                     $sdp = new SDP();
                     $response = json_decode($sdp->sendSMS($message),1);
                     print_r($response);
+
+                    if( isset($response['statusCode']) && $response['statusCode'] == 'SC0000' ){
+                        // save into recipient table
+                        // depends on the dlr
+                        // print_r($response);
+                    }                    
                 }
-                
+
+                if(count($contacts) < $limit) $loop = false;
+                else $start += 1;
+
             }
 
         }
+
+        // 2. Send from contact list
+
+            // 2.1 Check if its custom or bulk
+
+                // 2.1.1 Custom message
+
+                // 2.1.2 Bulk message
+
+                    // * Is it possible to have contact id related to message recipients
+        
+
+
+
+
+
+
+        
+
 
 
 
@@ -151,4 +131,15 @@ try {
 
 } catch (Throwable $e) {
     echo "Kafka Crash: " . $e->getMessage() . PHP_EOL;
+    echo "At: " . $e->getFile() . ":" . $e->getLine() . PHP_EOL;
+    echo "Trace:" . PHP_EOL . $e->getTraceAsString() . PHP_EOL;
+
+    error_log(sprintf(
+        "[%s] Kafka Crash: %s in %s:%d\n%s",
+        date('Y-m-d H:i:s'),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    ), 3, LOG_FILE_KAFKA);    
 }
