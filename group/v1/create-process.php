@@ -3,6 +3,15 @@
 // prevent from being access via 
 if(php_sapi_name() != 'cli') die('Access denied.');
 
+pcntl_async_signals(true);
+$keepRunning = true;
+
+// Signal handler for graceful shutdown
+pcntl_signal(SIGTERM, function () use (&$keepRunning) {
+    echo "Caught SIGTERM, stopping gracefully...\n";
+    $keepRunning = false;
+});
+
 $baseDir = dirname(__dir__,2);
 
 require_once $baseDir.'/.config/.config.php'; 
