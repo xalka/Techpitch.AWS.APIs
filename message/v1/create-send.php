@@ -15,6 +15,14 @@ if(isset($req['contactGroupId'])){
     $contacts = json_decode(callAPI('GET',$url,$headers,$request),1);
     $req['recipients'] = $contacts[0]['contacts'];
 
+    if(empty($req['recipients'])){
+        $response = [
+            'status' => 403,
+            'message' => "The group doesn't have any contacts"
+        ];
+        exit(print_j($response));
+    }
+
 } else {
     $req['recipients'] = count(array_column($req['contacts'],'phone'));
 }
@@ -51,16 +59,12 @@ if($balance['balance'] >= $units && isset($balance['transactionId'])){
             'mode' => $req['mode'],
             'sent' => 0
         ];
-    // print_r($request); exit;
-        // save into db    
-        $return = PROC(Message($request)); // [0][0];    
-        // print_r($return); exit;
-        // save into mongodb
         
-        // save into DB
-        $return = SaveMessage($request);
-        if(isset($return['_id']) && $return['_id']>0){
-            $request['messageId'] = validInt($return['_id']);
+        $return = PROC(Message($request)); // [0][0];    
+        
+        if(isset($return[0][0]['messageId']) && $return[0][0]['messageId'] > 0){
+            $messageId = validInt($return[0][0]['messageId']);
+            $request['messageId'] = $messageId;
         } else {
             $response = [
                 'status' => 400,
@@ -69,14 +73,31 @@ if($balance['balance'] >= $units && isset($balance['transactionId'])){
             print_j($response);
             exit;
         }
-        
+
+        // save into mongodb
+        $request['_id'] = $messageId;
         unset($request['action']);
+
+        $return2 = mongoInsert(CMESSAGE,$request); 
+
+        if($return2){
+            $response = [ 
+                '_id' => $dbdata['_id'],
+                'created' => 1
+            ];
+        } else {
+            $response = [
+                'created' => 0,
+                'message' => 'Unable to save into mongodb'
+            ];
+        }  
 
         $request['headers'] = $headers;
        
         $kafka = new KafkaHelper(KAFKA_BROKER);
 
         if(isset($req['contacts']) && !empty($req['contacts'])){
+            unset($request['contactGroupId']);
             foreach (array_chunk($req['contacts'],GROUP_CHUNKS) as $batch) { 
                 $request['contacts'] = $batch;
                 $kafka->produceMessage(KAFKA_SEND_BULK_TOPIC,json_encode($request));
