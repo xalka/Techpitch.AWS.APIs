@@ -70,11 +70,11 @@ class SDP {
                 ]
             ]
         ];
-        return json_encode([
-            "keyword"    => "Bulk",
-            "status"     => "SUCCESS",
-            "statusCode" => "SC0000"
-        ]);
+        // return json_encode([
+        //     "keyword"    => "Bulk",
+        //     "status"     => "SUCCESS",
+        //     "statusCode" => "SC0000"
+        // ]);
         return $this->callAPI('POST', $url, $headers, $payload);
     }
 
