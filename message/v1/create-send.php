@@ -56,7 +56,8 @@ if($balance['balance'] >= $units && isset($balance['transactionId'])){
             'statusId' => 4,
             'status' => 'queued',
             'typeId' => $req['typeId'],
-            'mode' => $req['mode'],
+            'modeId' => $req['mode'],
+            'mode' => $req['mode'] == 1 ? 'custom' : 'normal',
             'sent' => 0
         ];
         

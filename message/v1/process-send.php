@@ -46,6 +46,7 @@ try {
             'timestamp' => SDP_TIMESTAMP,
             'messageId' => $payload['messageId'],
             'message' => $payload['message'],
+            'mode' => $payload['mode'],
         ];
 
         // 1. Get contacts from contact group if contactGroupId is set
@@ -65,7 +66,7 @@ try {
                 $contacts = json_decode(callAPI('GET',$url,$headers,$request),1); 
 
                 // 1.1 Check if its custom or bulk message
-                if($payload['mode'] == 1){
+                if($payload['modeId'] == 1){
                     foreach ($contacts as $contact){
                         // modify to take more custom parameter {ACCOUNT_NAME} {ACCOUNT_NUMBER} {{AMOUNT}}
                         $message['message'] = str_replace("{name}", ucfirst($contact['fname']), $message['message']);
@@ -152,7 +153,7 @@ function updateSdpStatus($response, $payload){
     // echo "\n\n";
 
     // save into recipient table
-    // depends on the dlr    
+    // depends on the dlr
 
     if( isset($response['statusCode']) && $response['statusCode'] == 'SC0000' ){
         $messageId = validInt($payload['messageId']);
@@ -194,7 +195,7 @@ function updateSdpStatus($response, $payload){
 
         // echo "\Mongo Message\n";
         // print_r($return3);
-        // echo "\n\n";        
+        // echo "\n\n";
 
         echo "Done: $messageId \n\n";
     }

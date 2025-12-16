@@ -5,7 +5,7 @@
 require __dir__.'/../../.config/.config.php'; 
 require __dir__.'/../../.core/.funcs.php';
 
-if(!ReqPost()) ReqBad();
+// if(!ReqPost()) ReqBad();
 
 $results = file_get_contents('php://input');
 
