@@ -29,6 +29,7 @@ class KafkaHelper {
             $conf->set('compression.type', "lz4");
             $conf->set('linger.ms', 5);
 
+            $conf->set('enable.auto.commit', 'false'); // Best practice: manual commit
             $conf->set('auto.offset.reset', 'earliest');
 
             $this->producer = new RdKafka\Producer($conf);

@@ -61,9 +61,9 @@ class SDP {
                     "userName" => $payload['username'],
                     "channel" => "SMS",
                     //"packageId" => 10203, // in case you have multiple package id in your account, don’t specify the package id, remove it completely
-                    "oa" => $payload['shortcode'], // "TestTP",
+                    "oa" => "TestTP", // $payload['shortcode'],
                     "cpPassword" => md5($this->sdpID.$payload['password'].$payload['timestamp']),
-                    "msisdn" => $payload['contacts'], // ,254115242477,254728642504,254722636396,254710543307",
+                    "msisdn" => $payload['contacts'],
                     "message" => $payload['message'],
                     "uniqueId" => $payload['messageId'],
                     "actionResponseURL" => $this->callbackurl.'sdp/v1/dlrbulk',
