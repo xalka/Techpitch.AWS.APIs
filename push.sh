@@ -8,7 +8,8 @@ TIMESTAMP=$(date +%Y%m%d%H%M%S)
 # Database configurations
 MYSQL_USER="root"
 MYSQL_PASSWORD="NOV.2014.TEN"
-MYSQL_DB="tpsys"
+MYSQL_DB="tpsyswithdata"
+
 MONGODB_DB="tpsys"
 MONGODB_USER="devOps"
 MONGODB_PASS="working.Dev2"
@@ -122,7 +123,7 @@ main() {
 
     # Execute functions in sequence
     clean_previous_dumps
-    #export_mysql
+    export_mysql
     #export_mongodb
     git_push
     set_permissions
