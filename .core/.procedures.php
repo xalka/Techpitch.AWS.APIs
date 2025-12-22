@@ -150,7 +150,7 @@ function User($data=null){
 	$active = isset($data['active']) && !empty($data['active']) ? $data['active'] : 'null';
 	$passreset = isset($data['passreset']) && !empty($data['passreset']) ? $data['passreset'] : 'null';
 	$pass = isset($data['password']) && !empty($data['password']) ? $data['password'] : 'null';
-	$code = isset($data['code']) && !empty($data['code']) ? $data['code'] : 'null';
+	$code = isset($data['code']) && !empty($data['code']) ? $data['code'] : '0';
 	$typeId = isset($data['typeId']) && !empty($data['typeId']) ? $data['typeId'] : 'null';
 	$roleId = isset($data['roleId']) && !empty($data['roleId']) ? $data['roleId'] : 'null';
 	$adminId = isset($data['adminId']) && !empty($data['adminId']) ? $data['adminId'] : 'null';
@@ -160,5 +160,5 @@ function User($data=null){
 	$start = isset($data['start']) && !empty($data['start']) ? $data['start'] : START;
 	$limit = isset($data['limit']) && !empty($data['limit']) ? $data['limit'] : LIMIT;
 
-	return "USERS($action,$userId,'$email','$phone','$fname','$lname',$active,$passreset,'$pass','$code',$typeId,$roleId,$adminId,'$passExpire','$starttime','$endtime',$start,$limit)";
+	return "USERS($action,$userId,'$email','$phone','$fname','$lname',$active,$passreset,'$pass',$code,$typeId,$roleId,$adminId,'$passExpire','$starttime','$endtime',$start,$limit)";
 }

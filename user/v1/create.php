@@ -9,14 +9,9 @@ require __dir__.'/../../.core/.mysql.php';
 // POST request only
 if(!ReqPost()) ReqBad();
 
-$headers = getallheaders();
-
 // 1. Receive json
-$req = json_decode(file_get_contents('php://input'),1); 
+$req = json_decode(file_get_contents('php://input'),1);
 
-// To be used by admin to create system user
-print_r($req); 
-exit;
 // 2. Validate
 
 $otp = intRand();
@@ -24,25 +19,21 @@ $otp = intRand();
 // 4. Save into mysql
 $dbdata = [
     'action' => 1,
-    'typeId' => 1,
-    'fname' => $req['fname'],
-    'lname' => $req['lname'],
+    'fname' => validString($req['fname']),
+    'lname' => validString($req['lname']),
     'phone' => validPhone($req['phone']),
     'email' => validEmail($req['email']),
     'pcode' => $otp,
     'password' => passEncrype(decrypt($otp)),
     'passreset' => 1,
-    'roleId' => $req['roleId'],
-    'groupId' => $headers['Groupid'],
-    'adminId' => $headers['Customerid']
+    'roleId' => validInt($req['roleId']),
+    'adminId' => HEADERS['adminid']
 ];
-
-print_r($dbdata); exit;
 
 try {
     $return1 = PROC(User($dbdata));
 
-    if(isset($return1[0][0]['created']) && $return1['created'][0][0]==0){
+    if(!isset($return1[0][0]['created'])){
         $return1 = $return1[0][0];
         $response = [
             'status' => 401,
@@ -54,66 +45,67 @@ try {
         exit;
     }
 
-    $customerId = $return1['id'];
+    if(isset($return1[0][0]['userId']) && $return1[0][0]['userId'] > 1){
 
-    if($return1['newly'] == 1){
-        // 5. Save into mongodb
+        $return1 = $return1[0][0];
+        
+        $userId = $return1['userId'];
+
         unset($dbdata['action']);
-        $dbdata['_id'] = $customerId;
-        $dbdata['groupId'] = (int)$return1['groupId'];
-        $dbdata['groups'] = [(int)$return1['groupId']];
-        $dbdata['roleId'] = (int)$return1['roleId'];
-        $dbdata['role'] = $return1['title'];
+
+        $dbdata['_id'] = $userId;
         $dbdata['created'] = mongodate('NOW');
-        $dbdata['type'] = 'individual';
+        $dbdata['role'] = $return1['title'];
         $dbdata['active'] = 1;
-        $dbdata['activated'] = 0;
+
+        // print_r($dbdata);
 
         $return2 = mongoInsert(CUSER,$dbdata);
-    
-    } else {
-        // get customer groups
-        $dbdata2 = [
-            'action' => 6,
-            'customerId' => $customerId
-        ];
-        $groups = PROC(USERS($dbdata2))[0];
 
-        // update
-        $filter = [ '_id' => $customerId ];
-        $update = [ 
-            'phone' => $dbdata['phone'],
-            'email' => $dbdata['email'],
-            // 'groupId' => implode(',', array_column($groups,'groupId')) 
-            'groups' => array_column($groups,'groupId')
-        ];
-        $return2 = mongoUpdate(CUSER,$filter,$update);
+        // print_r($return2);
+
+        if($return2){
+
+            // send sms
+            $sms = "Welcome to TechPitch, your OTP is $otp";
+
+            // template
+            $email_template = file_get_contents(__dir__.'/../../_email/otp.html'); 
+            $email_template = str_replace('[TITLE]', 'OTP', $email_template);
+            $email_template = str_replace('[LOGO]', img2base64(LOGO), $email_template);
+            $email_template = str_replace('[HEADING]', 'OTP', $email_template);
+            $email_template = str_replace('[NAME]', $dbdata['fname'], $email_template);
+            $email_template = str_replace('[MESSAGE]', "Welcome to Techpitch, your OTP is .", $email_template);
+            $email_template = str_replace('[CODE]', $code, $email_template);
+            $email_template = str_replace('[YEAR]', date('Y'), $email_template);
+
+            // send email
+            $email = [
+                'recipients' => [[
+                    'email' => $dbdata['email'],
+                    'name' => $dbdata['fname'],
+                ]],
+                'subject' => 'TechPitch OTP',
+                'content' => $email_template
+            ];
+            $headers = [];
+            //$emailsent = callAPI('POST',API_HOST.'email/v1/send',$headers,json_encode($email));        
+
+            $response = [
+                'status' => 201,
+                'error' => 0
+            ];
+        }
+
     }
-
-    if($return2){
-
-        // send sms
-        $sms = "Welcome to TechPitch, your OTP is $otp";
-
-        $response = [
-            'status' => 201,
-            // 'type' => $dbdata['type'],
-            'error' => 0
-        ];
-    }    
+    
 
 } catch (Exception $e) {
     $response = [
         'status' => 401,
         'error' => $e->getMessage()
-    ];    
+    ];
 }
-
-
-
-// 6. Send OTP to phone number
-// Pending internal endpoint
-writeToFile('/tmp/techpitch-sms.log',json_encode($dbdata));
 
 // 7. Respond with a json
 print_j($response);
