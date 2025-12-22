@@ -82,8 +82,9 @@ try {
     ];
     $headers = [];
     $emailsent = callAPI('POST',API_HOST.'email/v1/send',$headers,json_encode($email));
-    writeToFile('/tmp/techpitch-email.log',$email_template);   
-    writeToFile('/tmp/techpitch-email.log',$emailsent);   
+    
+    // writeToFile('/tmp/techpitch-email.log',$email_template);   
+    // writeToFile('/tmp/techpitch-email.log',$emailsent);   
 
     // send sms
 

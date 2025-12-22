@@ -58,4 +58,48 @@ if(ReqGet()){
     print_j($payments);
 
 
-} ReqBad();
+} 
+
+ReqBad();
+
+
+/*
+function calculateSmsQuantity(float $amount, array $tiers): int {
+    $remaining = $amount;
+    $totalSms = 0;
+
+    foreach ($tiers as $tier) {
+        $tierSmsCount = $tier['end'] - $tier['start'] + 1;
+        $tierCost = $tierSmsCount * $tier['rate'];
+
+        if ($remaining >= $tierCost) {
+            // Can buy entire tier
+            $totalSms += $tierSmsCount;
+            $remaining -= $tierCost;
+        } else {
+            // Partial tier
+            $smsInTier = floor($remaining / $tier['rate']);
+            $totalSms += $smsInTier;
+            $remaining = 0;
+            break;
+        }
+    }
+    return $totalSms;
+}
+
+// Usage
+$smsTiers = [
+    ['start' => 1,       'end' => 100000,  'rate' => 0.50],
+    ['start' => 100001,  'end' => 500000,  'rate' => 0.40],
+    ['start' => 500001,  'end' => 1000000, 'rate' => 0.35],
+];
+
+$amount = 1000; // KES
+echo "\nSMS Quantity for {$amount} KES: " . calculateSmsQuantity($amount, $smsTiers) . "\n";
+
+$amount = 100005; // KES
+echo "SMS Quantity for {$amount} KES: " . calculateSmsQuantity($amount, $smsTiers) . "\n";
+
+$amount = 500005; // KES
+echo "SMS Quantity for {$amount} KES: " . calculateSmsQuantity($amount, $smsTiers) . "\n";
+*/

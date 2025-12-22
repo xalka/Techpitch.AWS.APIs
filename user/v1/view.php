@@ -31,7 +31,7 @@ $filter = [
     // ],
 ];
 
-if(isset(HEADERS['groupid'])) $filter['groupId'] = validInt($headers['groupid']);
+if(isset($_GET['id'])) $filter['_id'] = validInt($_GET['id']);
 
 $options = [
 	'skip' => isset($_GET['start']) ? $_GET['start'] : 0,
